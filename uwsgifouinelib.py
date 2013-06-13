@@ -124,18 +124,23 @@ def print_data(data, num_results, locale_name):
 
     def print_row(row):
         details = data[row[0]]
+        total_msecs = locale.format('%d', sum(details), grouping=True)
+        avg_msecs = locale.format('%d', numpy.average(details), grouping=True),
+        max_msecs = locale.format('%d', max(details), grouping=True),
+        num_calls = locale.format('%d', len(details), grouping=True)
         args = {'path': row[0],
+                'path_tab': ' '*(70-len(row[0])),
                 'row_count': row_count.next(),
-                'total_msecs':
-                    locale.format('%d', sum(details), grouping=True),
-                'avg_msecs':
-                    locale.format('%d', numpy.average(details), grouping=True),
-                'max_msecs':
-                    locale.format('%d', max(details), grouping=True),
-                'num_calls':
-                    locale.format('%d', len(details), grouping=True), }
-        print "{row_count}. {path} | {total_msecs} total ms | {avg_msecs} avg ms | " \
-              "{max_msecs} max ms | {num_calls} calls".format(**args)
+                'total_msecs': total_msecs,
+                'total_msecs_tab': ' '*(8-len(str(total_msecs))),
+                'avg_msecs': avg_msecs[0],
+                'avg_msecs_tab': ' '*(8-len(str(avg_msecs[0]))),
+                'max_msecs': max_msecs[0],
+                'max_msecs_tab': ' '*(8-len(str(max_msecs[0]))),
+                'num_calls': num_calls,
+                }
+        print "{row_count}. {path}{path_tab} | {total_msecs} total ms{total_msecs_tab} | {avg_msecs} avg ms{avg_msecs_tab} | " \
+              "{max_msecs} max ms{max_msecs_tab} | {num_calls} calls".format(**args)
 
     print "Where was the most time spent?"
     print "=============================="
