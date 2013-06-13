@@ -28,6 +28,9 @@ def add_parse_options(parser):
     parser.add_option('--locale_name', action='store',
                       dest='locale_name', default=None,
                       help='Locale name. Default: None. Example: en_US')
+    parser.add_option('--avg_page_load_calls_from', action='store',
+                      dest='avg_page_load_calls_from', default=None,
+                      help='Disply avg page load time with more then [calls_from] calls. Default: None.')
     parser.add_option('--path_map_function', action='store',
                       dest='path_map_function', default=False,
                       help='A python function to rename paths')
@@ -109,20 +112,24 @@ def condensed_data_to_summary(data, aggregator):
     return dict(itertools.imap(lambda (a, b): (a, aggregator(b)), data.iteritems()))
 
 
+def condensed_data_to_summary_2(data, aggregator):
+    return dict(itertools.imap(lambda (a, b, c): (a, aggregator(b), c), data.iteritems()))
+
+
 def string_to_symbol(str):
     parts = str.split('.')
     module = import_module('.'.join(parts[:-1]))
     return getattr(module, parts[-1])
 
 
-def print_data(data, num_results, locale_name):
+def print_data(data, num_results, locale_name, calls_from):
     import locale
 
     if locale_name:
         locale.setlocale(locale.LC_ALL, locale_name)
     row_count = iter(xrange(1, 999999))
 
-    def print_row(row):
+    def print_row(row, calls_from=None):
         details = data[row[0]]
         total_msecs = locale.format('%d', sum(details), grouping=True)
         avg_msecs = locale.format('%d', numpy.average(details), grouping=True),
@@ -139,8 +146,13 @@ def print_data(data, num_results, locale_name):
                 'max_msecs_tab': ' '*(8-len(str(max_msecs[0]))),
                 'num_calls': num_calls,
                 }
-        print "{row_count}. {path}{path_tab} | {total_msecs} total ms{total_msecs_tab} | {avg_msecs} avg ms{avg_msecs_tab} | " \
+        msg = "{row_count}. {path}{path_tab} | {total_msecs} total ms{total_msecs_tab} |" \
+              " {avg_msecs} avg ms{avg_msecs_tab} | " \
               "{max_msecs} max ms{max_msecs_tab} | {num_calls} calls".format(**args)
+        if calls_from and int(num_calls) > int(calls_from):
+            print msg
+        elif not calls_from:
+            print msg
 
     print "Where was the most time spent?"
     print "=============================="
@@ -163,6 +175,15 @@ def print_data(data, num_results, locale_name):
     for row in collections.Counter(
             condensed_data_to_summary(data, numpy.average)).most_common(num_results):
         print_row(row)
+    if calls_from:
+        for i in xrange(3):
+            print ""
+        row_count = iter(xrange(1, 999999))
+        print "What were the slowest pages (avg page load time with more then {0} calls)?".format(calls_from)
+        print "=============================="
+        for row in collections.Counter(
+                condensed_data_to_summary(data, numpy.average)).most_common():
+            print_row(row, calls_from)
 
 
 def parse_log(logfile, options):
@@ -176,4 +197,4 @@ def parse_log(logfile, options):
         options.time_to
     )
     data = condense_parsed_data(itertools.imap(parser.parse_line, f))
-    print_data(data, options.num_results, options.locale_name)
+    print_data(data, options.num_results, options.locale_name, options.avg_page_load_calls_from)
