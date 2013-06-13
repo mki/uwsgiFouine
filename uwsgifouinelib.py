@@ -25,6 +25,9 @@ def add_parse_options(parser):
     parser.add_option('--time_to', action='store',
                       dest='time_to', default=None,
                       help='Parse to time. Date to NEEDED. Format: %H:%M:%S')
+    parser.add_option('--locale_name', action='store',
+                      dest='locale_name', default=None,
+                      help='Locale name. Default: None. Example: en_US')
     parser.add_option('--path_map_function', action='store',
                       dest='path_map_function', default=False,
                       help='A python function to rename paths')
@@ -70,7 +73,8 @@ class LineParser(object):
                 start_date = datetime.datetime.strptime(
                     "{date} {time}".format(date=self.date_from, time=self.time_from), '%Y-%m-%d %H:%M:%S')
 
-            log_date = datetime.datetime.strptime(res.group(1).replace(']', '').replace('[', ''), '%a %b %d %H:%M:%S %Y')
+            log_date = datetime.datetime.strptime(res.group(1).replace(']', '').replace('[', ''),
+                                                  '%a %b %d %H:%M:%S %Y')
             if log_date < start_date:
                 return None
 
@@ -80,7 +84,8 @@ class LineParser(object):
                 end_date = datetime.datetime.strptime(
                     "{date} {time}".format(date=self.date_to, time=self.time_to), '%Y-%m-%d %H:%M:%S')
 
-            log_date = datetime.datetime.strptime(res.group(1).replace(']', '').replace('[', ''), '%a %b %d %H:%M:%S %Y')
+            log_date = datetime.datetime.strptime(res.group(1).replace(']', '').replace('[', ''),
+                                                  '%a %b %d %H:%M:%S %Y')
             if log_date > end_date:
                 return None
 
@@ -110,10 +115,11 @@ def string_to_symbol(str):
     return getattr(module, parts[-1])
 
 
-def print_data(data, num_results):
+def print_data(data, num_results, locale_name):
     import locale
 
-    # locale.setlocale(locale.LC_ALL, 'en_US')
+    if locale_name:
+        locale.setlocale(locale.LC_ALL, locale_name)
     row_count = iter(xrange(1, 999999))
 
     def print_row(row):
@@ -165,4 +171,4 @@ def parse_log(logfile, options):
         options.time_to
     )
     data = condense_parsed_data(itertools.imap(parser.parse_line, f))
-    print_data(data, options.num_results)
+    print_data(data, options.num_results, options.locale_name)
